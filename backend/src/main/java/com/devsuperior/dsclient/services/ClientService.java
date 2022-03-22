@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.devsuperior.dsclient.dto.ClientDTO;
 import com.devsuperior.dsclient.entities.Client;
 import com.devsuperior.dsclient.repositories.ClientRepository;
+import com.devsuperior.dsclient.services.exceptions.DatabaseException;
+import com.devsuperior.dsclient.services.exceptions.ResourceNotFoundException;
 
 @Service
 public class ClientService {
@@ -22,19 +24,22 @@ public class ClientService {
 	@Autowired
 	private ClientRepository repository;
 	
+	// FIND ALL PAGED
 	@Transactional(readOnly = true)
 	public Page<ClientDTO> findAllPaged(PageRequest pageRequest) {
 		Page<Client> list = repository.findAll(pageRequest);
 		return list.map(x -> new ClientDTO(x));
 	}
 
+	// FIND BY ID
 	@Transactional(readOnly = true)
 	public ClientDTO findById(Long id) {
 		Optional<Client> obj = repository.findById(id);
-		Client entity = obj.orElseThrow(() -> new RuntimeException("Entity not found"));
+		Client entity = obj.orElseThrow(() -> new ResourceNotFoundException("No client found for id=" + id));
 		return new ClientDTO(entity); 
 	}
 
+	// INSERT
 	@Transactional
 	public ClientDTO insert(ClientDTO dto) {
 		Client entity = new Client();
@@ -43,6 +48,7 @@ public class ClientService {
 		return new ClientDTO(entity);
 	}
 
+	// UPDATE
 	@Transactional
 	public ClientDTO update(Long id, ClientDTO dto) {
 		try {
@@ -51,24 +57,24 @@ public class ClientService {
 			entity = repository.save(entity);
 			return new ClientDTO(entity);
 		} catch (EntityNotFoundException e) {
-			throw new RuntimeException("Id not found: " + id);
+			throw new ResourceNotFoundException("Update client fail for id=" + id);
 		}
 	}
 
+	// DELETE
 	public void delete(Long id) {
 		try {
 			repository.deleteById(id);
 		} catch (EmptyResultDataAccessException e) {
-			throw new RuntimeException("Id not found: " + id);
+			throw new ResourceNotFoundException("Delete client fail for id=" + id);
 		} catch (DataIntegrityViolationException e) {
-			throw new RuntimeException("Integrity violation");
+			throw new DatabaseException("Integrity violation");
 
 		}
 		
 	}
 
 	private void copyDtoToEntity(ClientDTO dto, Client entity) {
-		// TODO Auto-generated method stub
 		entity.setName(dto.getName());
 		entity.setCpf(dto.getCpf());
 		entity.setIncome(dto.getIncome());
